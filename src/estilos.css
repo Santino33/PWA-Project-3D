@@ -65,6 +65,8 @@ body {
 
 .controles-pwa { margin-bottom: 1rem; color: var(--tenue); font-size: 0.78rem; }
 .controles-pwa p { line-height: 1.4; margin: 0.35rem 0; }
+.controles-pwa #estado-conexion { min-height: 2.8em; }
+.controles-pwa #estado-pwa { min-height: 2.8em; }
 .controles-pwa .sin-conexion { color: var(--ambar); }
 .controles-pwa button { border: 1px solid var(--cian); border-radius: 8px; background: #16354b; color: var(--texto); padding: 0.5rem 0.8rem; cursor: pointer; }
 .controles-pwa button[hidden] { display: none; }
@@ -278,6 +280,10 @@ button:focus-visible { outline: 2px solid var(--ambar); outline-offset: 2px; }
   }
   .lista-catalogo {
     grid-template-columns: repeat(auto-fit, minmax(145px, 1fr));
+    min-height: 55vh;
+    max-height: 55vh;
+    overflow-y: auto;
+    align-content: start;
   }
   .visor {
     grid-template-rows: minmax(300px, 50vh) auto;

@@ -1,5 +1,5 @@
 import "fake-indexeddb/auto";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { abrirBaseDeDatos, alternarFavorito, marcarModeloVisto, obtenerEstados, obtenerFavoritos, obtenerHistorial, NOMBRE_BD } from "./estadoModelos";
 
 describe("estado persistido de los modelos", () => {
@@ -9,7 +9,10 @@ describe("estado persistido de los modelos", () => {
     expect([...db.transaction("estadoModelos").objectStore("estadoModelos").indexNames]).toEqual(["porFavorito", "porUltimaVista"]);
 
     const primero = await marcarModeloVisto("capas");
+    const actualizarCursor = vi.spyOn(IDBCursor.prototype, "update");
     const segundo = await marcarModeloVisto("capas");
+    expect(actualizarCursor).toHaveBeenCalled();
+    actualizarCursor.mockRestore();
     expect(segundo.ultimaVista).toBeGreaterThanOrEqual(primero.ultimaVista!);
     expect(await alternarFavorito("capas")).toMatchObject({ favorito: 1, ultimaVista: segundo.ultimaVista });
     expect((await obtenerFavoritos()).map((e) => e.modeloId)).toEqual(["capas"]);

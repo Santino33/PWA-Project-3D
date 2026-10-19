@@ -25,3 +25,7 @@ dist-ssr
 
 # Configuración local de herramientas
 .claude/
+
+# Artefactos de pruebas de navegador
+playwright-report/
+test-results/

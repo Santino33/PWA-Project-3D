@@ -16,11 +16,11 @@ import { alternarFavorito, marcarModeloVisto, obtenerEstados, obtenerFavoritos }
 import { existeNota, guardarNota, leerNota } from "../datos/notas";
 import type { EstadoModelo } from "../dominio/EstadoModelo";
 
-import { Escena3D } from "../vista/escena3d";
+import type { Escena3D } from "../vista/escena3d";
+import type { Group } from "three";
 import { ListaCatalogo } from "../vista/listaCatalogo";
 import { PanelNotas } from "../vista/panelNotas";
 import type { ItemCatalogo } from "../vista/listaCatalogo";
-import { construirPatron } from "../vista/constructores";
 
 export class ControladorVisor {
   private catalogo: ArbolCatalogo;
@@ -34,6 +34,10 @@ export class ControladorVisor {
   private favoritosLocales = new Set<string>();
   private estadoCatalogoEl: HTMLElement;
   private notas: PanelNotas;
+  private crearGrupo: ((id: string) => Group) | null = null;
+  private seleccionado = "";
+  private cargaIniciada = false;
+  private observadorCarga: IntersectionObserver | null = null;
 
   constructor(listaEl: HTMLElement, filtroEl: HTMLButtonElement, lienzoEl: HTMLCanvasElement, descripcionEl: HTMLElement, estadoEl: HTMLElement, estadoCatalogoEl: HTMLElement, notasEl: HTMLElement) {
     this.catalogo = crearCatalogo();
@@ -54,23 +58,44 @@ export class ControladorVisor {
 
     this.lista.establecerItems(patrones.map(this.aItem));
     void this.hidratarEstados();
-    this.estado("Cargando visor 3D…");
-    try {
-      this.escena = new Escena3D(this.lienzoEl, (mensaje) => this.estado(mensaje));
-      this.escena.iniciar();
-    } catch (error) {
-      console.error("No se pudo iniciar WebGL", error);
-      this.estado("El visor 3D no está disponible en este dispositivo.", true);
-    }
-
+    this.estado("Desliza hasta el visor para cargar el modelo 3D.");
     if (patrones.length > 0) this.seleccionar(patrones[0].id, false);
     else this.estado("No hay modelos disponibles.", true);
+    if (patrones.length > 0) this.prepararVisor();
 
     // Comprobación rápida de que la inserción balanceada funcionó:
     // 8 patrones bien insertados dan altura 4, no 8.
     console.info(
       `Catálogo: ${this.catalogo.tamano} patrones · altura del árbol: ${this.catalogo.altura()}`,
     );
+  }
+
+  private prepararVisor(): void {
+    if (!("IntersectionObserver" in window)) { void this.iniciarEscena(); return; }
+    this.observadorCarga = new IntersectionObserver(([entrada]) => {
+      if (entrada.intersectionRatio >= 0.55) void this.iniciarEscena();
+    }, { threshold: [0.55] });
+    this.observadorCarga.observe(this.lienzoEl);
+  }
+
+  /** El catálogo interactivo se pinta antes de descargar y crear el contexto WebGL. */
+  private async iniciarEscena(): Promise<void> {
+    if (this.cargaIniciada) return;
+    this.cargaIniciada = true;
+    this.observadorCarga?.disconnect();
+    this.estado("Cargando visor 3D…");
+    try {
+      const [{ Escena3D }, { construirPatron }] = await Promise.all([
+        import("../vista/escena3d"), import("../vista/constructores"),
+      ]);
+      this.crearGrupo = construirPatron;
+      this.escena = new Escena3D(this.lienzoEl, (mensaje) => this.estado(mensaje));
+      this.escena.iniciar();
+      this.mostrarSeleccionado();
+    } catch (error) {
+      console.error("No se pudo iniciar WebGL", error);
+      this.estado("El visor 3D no está disponible en este dispositivo.", true);
+    }
   }
 
   /** Traduce del Modelo a la forma mínima que la Vista entiende. */
@@ -86,24 +111,33 @@ export class ControladorVisor {
     }
 
     this.lista.marcarSeleccionado(id);
+    this.seleccionado = id;
     this.pintarDescripcion(patron);
     void this.notas.mostrarModelo(id, patron.nombre);
     if (desplazar && window.matchMedia("(max-width: 760px)").matches) {
       this.lienzoEl.scrollIntoView({ behavior: "smooth", block: "start" });
     }
-    if (!this.escena) return;
+    if (desplazar && !this.cargaIniciada) void this.iniciarEscena();
+    this.mostrarSeleccionado();
+  }
+
+  private mostrarSeleccionado(): void {
+    if (!this.escena || !this.crearGrupo) return;
+    const id = this.seleccionado;
+    const patron = this.catalogo.buscarPorId(id);
+    if (!patron) return;
 
     const seleccion = ++this.seleccionActual;
     this.estado(`Cargando ${patron.nombre}…`);
     try {
-      this.escena.mostrar(construirPatron(patron.id));
+      this.escena.mostrar(this.crearGrupo(id));
       this.vistosLocales.add(id);
       void marcarModeloVisto(id).then((guardado) => {
         this.lista.actualizarEstado(id, { ultimaVista: guardado.ultimaVista });
       }).catch(() => this.avisoCatalogo("No se pudo guardar la última visualización."));
-      requestAnimationFrame(() => {
+      requestAnimationFrame(() => requestAnimationFrame(() => {
         if (seleccion === this.seleccionActual && this.escena?.disponible) this.estado("");
-      });
+      }));
     } catch (error) {
       console.error(`No se pudo mostrar ${patron.id}`, error);
       this.estado(`No se pudo mostrar ${patron.nombre}. Prueba con otro modelo.`, true);

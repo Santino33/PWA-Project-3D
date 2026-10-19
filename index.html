@@ -4,6 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Atlas 3D de Arquitectura de Software</title>
+    <meta name="description" content="Explora ocho modelos interactivos de arquitectura de software en 3D, guarda favoritos y estudia con notas privadas disponibles sin conexión." />
 
     <!-- PWA: el manifest se sirve desde public/, por eso la ruta es la raíz -->
     <link rel="manifest" href="/manifest.json" />
@@ -27,14 +28,14 @@
         <h2 class="titulo-catalogo">Explorar modelos</h2>
         <button id="filtro-favoritos" class="filtro-favoritos" type="button" aria-pressed="false">Ver favoritos</button>
         <p id="estado-catalogo" class="mensaje-catalogo" role="status" aria-live="polite"></p>
-        <nav id="lista-catalogo" class="lista-catalogo" aria-label="Catálogo de patrones"></nav>
+        <nav id="lista-catalogo" class="lista-catalogo" aria-label="Catálogo de patrones" tabindex="0"></nav>
       </aside>
 
       <main class="visor">
         <div class="lienzo-caja">
-          <canvas id="lienzo-3d"></canvas>
+          <canvas id="lienzo-3d" tabindex="0" aria-label="Modelo 3D interactivo. Arrastra o usa las flechas del teclado para girarlo.">El visor requiere WebGL.</canvas>
           <p id="estado-visor" class="estado-visor" role="status" aria-live="polite" hidden></p>
-          <p class="pista">Arrastra para girar el modelo</p>
+          <p class="pista">Arrastra o usa las flechas para girar</p>
         </div>
 
         <div class="detalle-modelo">

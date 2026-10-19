@@ -84,7 +84,7 @@ export class ListaCatalogo {
       const abrir = document.createElement("button");
       abrir.type = "button";
       abrir.className = "abrir-modelo";
-      abrir.setAttribute("aria-label", `Ver ${item.nombre} en 3D`);
+      abrir.setAttribute("aria-label", `${item.nombre}: Ver modelo en 3D`);
       abrir.addEventListener("click", () => this.alSeleccionar(item.id));
 
       const miniatura = document.createElement("span");

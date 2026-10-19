@@ -17,7 +17,11 @@ export class Escena3D {
   private camara: THREE.PerspectiveCamera;
   private objetoActual: THREE.Group | null = null;
   private observador: ResizeObserver;
+  private interseccion: IntersectionObserver | null = null;
   private contextoDisponible = true;
+  private animando = false;
+  private enPantalla = true;
+  private readonly reducirMovimiento = window.matchMedia("(prefers-reduced-motion: reduce)");
 
   get disponible(): boolean {
     return this.contextoDisponible;
@@ -54,8 +58,31 @@ export class Escena3D {
 
     this.observador = new ResizeObserver(() => this.ajustarTamano());
     this.observador.observe(lienzo.parentElement ?? lienzo);
+    if ("IntersectionObserver" in window) {
+      this.interseccion = new IntersectionObserver(([entrada]) => {
+        this.enPantalla = entrada.isIntersecting;
+        this.sincronizarAnimacion();
+      });
+      this.interseccion.observe(lienzo);
+    }
 
     this.conectarArrastre(lienzo);
+    lienzo.addEventListener("keydown", (evento) => {
+      if (!this.objetoActual || !["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(evento.key)) return;
+      evento.preventDefault();
+      if (evento.key === "ArrowLeft") this.objetoActual.rotation.y -= 0.15;
+      if (evento.key === "ArrowRight") this.objetoActual.rotation.y += 0.15;
+      if (evento.key === "ArrowUp") this.objetoActual.rotation.x -= 0.15;
+      if (evento.key === "ArrowDown") this.objetoActual.rotation.x += 0.15;
+      if (this.reducirMovimiento.matches) this.dibujar();
+    });
+    document.addEventListener("visibilitychange", () => {
+      this.sincronizarAnimacion();
+    });
+    this.reducirMovimiento.addEventListener("change", () => {
+      this.sincronizarAnimacion();
+      if (this.reducirMovimiento.matches) this.dibujar();
+    });
     lienzo.addEventListener("webglcontextlost", (evento) => {
       evento.preventDefault();
       this.contextoDisponible = false;
@@ -64,6 +91,7 @@ export class Escena3D {
     lienzo.addEventListener("webglcontextrestored", () => {
       this.contextoDisponible = true;
       notificarEstado("");
+      if (this.reducirMovimiento.matches) this.dibujar();
     });
     this.ajustarTamano();
   }
@@ -77,21 +105,32 @@ export class Escena3D {
 
     this.objetoActual = grupo;
     this.escena.add(grupo);
+    if (this.reducirMovimiento.matches && this.contextoDisponible) this.dibujar();
   }
 
   iniciar(): void {
-    this.renderizador.setAnimationLoop(() => {
-      // Giro lento continuo, salvo mientras el usuario arrastra
-      if (this.objetoActual && !this.arrastrando) {
-        this.objetoActual.rotation.y += 0.004;
-      }
-      if (this.contextoDisponible) this.renderizador.render(this.escena, this.camara);
-    });
+    this.animando = true;
+    this.sincronizarAnimacion();
   }
 
+  private sincronizarAnimacion(): void {
+    this.renderizador.setAnimationLoop(this.animando && this.enPantalla && !document.hidden &&
+      !this.reducirMovimiento.matches ? this.dibujar : null);
+  }
+
+  private dibujar = (): void => {
+    // Giro lento continuo, salvo mientras el usuario arrastra.
+    if (this.objetoActual && !this.arrastrando && !this.reducirMovimiento.matches) {
+      this.objetoActual.rotation.y += 0.004;
+    }
+    if (this.contextoDisponible) this.renderizador.render(this.escena, this.camara);
+  };
+
   detener(): void {
+    this.animando = false;
     this.renderizador.setAnimationLoop(null);
     this.observador.disconnect();
+    this.interseccion?.disconnect();
     if (this.objetoActual) this.liberar(this.objetoActual);
     this.renderizador.dispose();
   }
@@ -106,6 +145,7 @@ export class Escena3D {
     this.renderizador.setSize(ancho, alto, false);
     this.camara.aspect = ancho / alto;
     this.camara.updateProjectionMatrix();
+    if (this.objetoActual && this.reducirMovimiento.matches) this.dibujar();
   }
 
   /** Arrastrar con el mouse o el dedo para girar el objeto. */
@@ -122,6 +162,7 @@ export class Escena3D {
 
       this.objetoActual.rotation.y += (evento.clientX - this.ultimoX) * 0.01;
       this.objetoActual.rotation.x += (evento.clientY - this.ultimoY) * 0.01;
+      if (this.reducirMovimiento.matches) this.dibujar();
 
       this.ultimoX = evento.clientX;
       this.ultimoY = evento.clientY;

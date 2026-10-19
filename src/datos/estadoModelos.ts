@@ -39,7 +39,7 @@ export function abrirBaseDeDatos(): Promise<IDBDatabase> {
       db.onversionchange = () => {
         db.close();
         conexion = null;
-        window.dispatchEvent(new Event("atlas3d:versionchange"));
+        if (typeof window !== "undefined") window.dispatchEvent(new Event("atlas3d:versionchange"));
       };
       resolve(db);
     };

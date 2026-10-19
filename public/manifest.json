@@ -1,7 +1,7 @@
 {
   "name": "Atlas 3D de Arquitectura de Software",
   "short_name": "Atlas 3D",
-  "description": "Catálogo interactivo en 3D de patrones y arquitecturas de software, con soporte de realidad aumentada.",
+  "description": "Catálogo interactivo en 3D de patrones y arquitecturas de software, con favoritos y notas de estudio privadas.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
