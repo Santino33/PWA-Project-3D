@@ -160,6 +160,21 @@ body {
   pointer-events: none;
 }
 
+.estado-visor {
+  position: absolute;
+  inset: auto 1rem 3rem;
+  width: fit-content;
+  max-width: calc(100% - 2rem);
+  margin: auto;
+  padding: 0.7rem 1rem;
+  background: var(--panel);
+  border: 1px solid var(--borde);
+  border-radius: 8px;
+  text-align: center;
+}
+.estado-visor.es-error { border-color: var(--ambar); }
+.estado-visor[hidden] { display: none; }
+
 .descripcion {
   border-top: 1px solid var(--borde);
   background: var(--panel);

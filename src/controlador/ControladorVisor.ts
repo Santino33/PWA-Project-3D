@@ -21,16 +21,20 @@ import { construirPatron } from "../vista/constructores";
 export class ControladorVisor {
   private catalogo: ArbolCatalogo;
   private lista: ListaCatalogo;
-  private escena: Escena3D;
+  private escena: Escena3D | null = null;
+  private lienzoEl: HTMLCanvasElement;
+  private estadoEl: HTMLElement;
   private descripcionEl: HTMLElement;
+  private seleccionActual = 0;
 
-  constructor(listaEl: HTMLElement, lienzoEl: HTMLCanvasElement, descripcionEl: HTMLElement) {
+  constructor(listaEl: HTMLElement, lienzoEl: HTMLCanvasElement, descripcionEl: HTMLElement, estadoEl: HTMLElement) {
     this.catalogo = crearCatalogo();
+    this.lienzoEl = lienzoEl;
+    this.estadoEl = estadoEl;
     this.descripcionEl = descripcionEl;
 
     // La vista recibe una función que llamar; no sabe qué hay al otro lado.
     this.lista = new ListaCatalogo(listaEl, (id) => this.seleccionar(id));
-    this.escena = new Escena3D(lienzoEl);
   }
 
   iniciar(): void {
@@ -39,9 +43,17 @@ export class ControladorVisor {
     const patrones = this.catalogo.enOrden();
 
     this.lista.pintar(patrones.map(this.aItem));
-    this.escena.iniciar();
+    this.estado("Cargando visor 3D…");
+    try {
+      this.escena = new Escena3D(this.lienzoEl, (mensaje) => this.estado(mensaje));
+      this.escena.iniciar();
+    } catch (error) {
+      console.error("No se pudo iniciar WebGL", error);
+      this.estado("El visor 3D no está disponible en este dispositivo.", true);
+    }
 
     if (patrones.length > 0) this.seleccionar(patrones[0].id);
+    else this.estado("No hay modelos disponibles.", true);
 
     // Comprobación rápida de que la inserción balanceada funcionó:
     // 8 patrones bien insertados dan altura 4, no 8.
@@ -57,11 +69,32 @@ export class ControladorVisor {
 
   private seleccionar(id: string): void {
     const patron = this.catalogo.buscarPorId(id);
-    if (patron === null) return;
+    if (patron === null) {
+      this.estado("El modelo solicitado no existe.", true);
+      return;
+    }
 
     this.lista.marcarSeleccionado(id);
-    this.escena.mostrar(construirPatron(patron.id));
     this.pintarDescripcion(patron);
+    if (!this.escena) return;
+
+    const seleccion = ++this.seleccionActual;
+    this.estado(`Cargando ${patron.nombre}…`);
+    try {
+      this.escena.mostrar(construirPatron(patron.id));
+      requestAnimationFrame(() => {
+        if (seleccion === this.seleccionActual && this.escena?.disponible) this.estado("");
+      });
+    } catch (error) {
+      console.error(`No se pudo mostrar ${patron.id}`, error);
+      this.estado(`No se pudo mostrar ${patron.nombre}. Prueba con otro modelo.`, true);
+    }
+  }
+
+  private estado(mensaje: string, error = false): void {
+    this.estadoEl.textContent = mensaje;
+    this.estadoEl.hidden = mensaje === "";
+    this.estadoEl.classList.toggle("es-error", error);
   }
 
   private pintarDescripcion(patron: PatronArquitectura): void {

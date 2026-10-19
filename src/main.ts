@@ -19,8 +19,9 @@ function requerir<T extends Element>(selector: string): T {
 const listaEl = requerir<HTMLElement>("#lista-catalogo");
 const lienzoEl = requerir<HTMLCanvasElement>("#lienzo-3d");
 const descripcionEl = requerir<HTMLElement>("#descripcion-patron");
+const estadoEl = requerir<HTMLElement>("#estado-visor");
 
-const controlador = new ControladorVisor(listaEl, lienzoEl, descripcionEl);
+const controlador = new ControladorVisor(listaEl, lienzoEl, descripcionEl, estadoEl);
 controlador.iniciar();
 
 // Sesión 28: con el Service Worker registrado, el manifest.json cumple el

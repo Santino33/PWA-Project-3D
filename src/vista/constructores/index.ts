@@ -30,17 +30,9 @@ const REGISTRO: Record<string, ConstructorPatron> = {
   repositorio: construirRepositorio,
 };
 
-/** Devuelve el objeto 3D de un patrón, o un cubo neutro si el id no existe. */
+/** Un id del catálogo sin constructor es un error, no un modelo ficticio. */
 export function construirPatron(id: string): THREE.Group {
   const constructor = REGISTRO[id];
-  if (constructor) return constructor();
-
-  const marcador = new THREE.Group();
-  marcador.add(
-    new THREE.Mesh(
-      new THREE.BoxGeometry(1.5, 1.5, 1.5),
-      new THREE.MeshStandardMaterial({ color: 0x475569, wireframe: true }),
-    ),
-  );
-  return marcador;
+  if (!constructor) throw new Error(`No hay constructor 3D para "${id}"`);
+  return constructor();
 }

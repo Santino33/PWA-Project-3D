@@ -17,13 +17,18 @@ export class Escena3D {
   private camara: THREE.PerspectiveCamera;
   private objetoActual: THREE.Group | null = null;
   private observador: ResizeObserver;
+  private contextoDisponible = true;
+
+  get disponible(): boolean {
+    return this.contextoDisponible;
+  }
 
   // Estado del arrastre con el mouse/dedo
   private arrastrando = false;
   private ultimoX = 0;
   private ultimoY = 0;
 
-  constructor(lienzo: HTMLCanvasElement) {
+  constructor(lienzo: HTMLCanvasElement, notificarEstado: (mensaje: string) => void) {
     this.renderizador = new THREE.WebGLRenderer({
       canvas: lienzo,
       antialias: true,
@@ -51,6 +56,15 @@ export class Escena3D {
     this.observador.observe(lienzo.parentElement ?? lienzo);
 
     this.conectarArrastre(lienzo);
+    lienzo.addEventListener("webglcontextlost", (evento) => {
+      evento.preventDefault();
+      this.contextoDisponible = false;
+      notificarEstado("Se perdió el contexto gráfico. Esperando su recuperación…");
+    });
+    lienzo.addEventListener("webglcontextrestored", () => {
+      this.contextoDisponible = true;
+      notificarEstado("");
+    });
     this.ajustarTamano();
   }
 
@@ -71,13 +85,15 @@ export class Escena3D {
       if (this.objetoActual && !this.arrastrando) {
         this.objetoActual.rotation.y += 0.004;
       }
-      this.renderizador.render(this.escena, this.camara);
+      if (this.contextoDisponible) this.renderizador.render(this.escena, this.camara);
     });
   }
 
   detener(): void {
     this.renderizador.setAnimationLoop(null);
     this.observador.disconnect();
+    if (this.objetoActual) this.liberar(this.objetoActual);
+    this.renderizador.dispose();
   }
 
   private ajustarTamano(): void {
