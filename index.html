@@ -32,7 +32,22 @@
           <p class="pista">Arrastra para girar el modelo</p>
         </div>
 
-        <section id="descripcion-patron" class="descripcion"></section>
+        <div class="detalle-modelo">
+          <section id="descripcion-patron" class="descripcion"></section>
+          <section id="panel-notas" class="notas" aria-label="Notas privadas">
+            <h3 id="titulo-nota">Nota privada</h3>
+            <p id="estado-nota" role="status" aria-live="polite"></p>
+            <label for="password-nota">Contraseña de la nota</label>
+            <input id="password-nota" type="password" autocomplete="off" />
+            <label for="texto-nota">Texto privado</label>
+            <textarea id="texto-nota" rows="4" hidden></textarea>
+            <div class="acciones-nota">
+              <button id="desbloquear-nota" type="button" hidden>Desbloquear</button>
+              <button id="guardar-nota" type="button" hidden>Guardar cifrada</button>
+              <button id="cerrar-nota" type="button">Cerrar nota</button>
+            </div>
+          </section>
+        </div>
       </main>
     </div>
 

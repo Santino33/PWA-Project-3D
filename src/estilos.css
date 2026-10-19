@@ -230,6 +230,20 @@ button:focus-visible { outline: 2px solid var(--ambar); outline-offset: 2px; }
   overflow-y: auto;
 }
 
+.detalle-modelo { max-height: 42vh; overflow-y: auto; background: var(--panel); border-top: 1px solid var(--borde); }
+.detalle-modelo .descripcion { max-height: none; border: 0; }
+.notas { padding: 0 1.6rem 1.5rem; max-width: 75ch; }
+.notas h3 { font-size: 1.08rem; margin: 0 0 0.6rem; }
+.notas p { color: var(--tenue); font-size: 0.85rem; }
+.notas label { display: block; margin: 0.65rem 0 0.3rem; font-size: 0.88rem; }
+.notas input, .notas textarea { display: block; width: 100%; padding: 0.6rem; border: 1px solid var(--borde); border-radius: 7px; background: var(--fondo); color: var(--texto); font: inherit; }
+.notas textarea[hidden] { display: none; }
+.notas label:has(+ textarea[hidden]) { display: none; }
+.acciones-nota { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.7rem; }
+.acciones-nota button { padding: 0.5rem 0.8rem; border: 1px solid var(--borde); border-radius: 7px; background: #1d3452; color: var(--texto); cursor: pointer; }
+.acciones-nota button[hidden] { display: none; }
+.acciones-nota button:disabled { opacity: 0.55; cursor: wait; }
+
 .descripcion h2 {
   margin: 0 0 0.5rem;
   font-size: 1.2rem;
@@ -266,4 +280,5 @@ button:focus-visible { outline: 2px solid var(--ambar); outline-offset: 2px; }
   .descripcion {
     max-height: none;
   }
+  .detalle-modelo { max-height: none; }
 }

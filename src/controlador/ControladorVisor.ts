@@ -13,10 +13,12 @@ import type { PatronArquitectura } from "../dominio/PatronArquitectura";
 import { ArbolCatalogo } from "../dominio/ArbolCatalogo";
 import { crearCatalogo } from "../datos/patrones";
 import { alternarFavorito, marcarModeloVisto, obtenerEstados, obtenerFavoritos } from "../datos/estadoModelos";
+import { existeNota, guardarNota, leerNota } from "../datos/notas";
 import type { EstadoModelo } from "../dominio/EstadoModelo";
 
 import { Escena3D } from "../vista/escena3d";
 import { ListaCatalogo } from "../vista/listaCatalogo";
+import { PanelNotas } from "../vista/panelNotas";
 import type { ItemCatalogo } from "../vista/listaCatalogo";
 import { construirPatron } from "../vista/constructores";
 
@@ -31,8 +33,9 @@ export class ControladorVisor {
   private vistosLocales = new Set<string>();
   private favoritosLocales = new Set<string>();
   private estadoCatalogoEl: HTMLElement;
+  private notas: PanelNotas;
 
-  constructor(listaEl: HTMLElement, filtroEl: HTMLButtonElement, lienzoEl: HTMLCanvasElement, descripcionEl: HTMLElement, estadoEl: HTMLElement, estadoCatalogoEl: HTMLElement) {
+  constructor(listaEl: HTMLElement, filtroEl: HTMLButtonElement, lienzoEl: HTMLCanvasElement, descripcionEl: HTMLElement, estadoEl: HTMLElement, estadoCatalogoEl: HTMLElement, notasEl: HTMLElement) {
     this.catalogo = crearCatalogo();
     this.lienzoEl = lienzoEl;
     this.estadoEl = estadoEl;
@@ -41,6 +44,7 @@ export class ControladorVisor {
 
     // La vista recibe una función que llamar; no sabe qué hay al otro lado.
     this.lista = new ListaCatalogo(listaEl, filtroEl, (id) => this.seleccionar(id), (id) => { void this.cambiarFavorito(id); });
+    this.notas = new PanelNotas(notasEl, existeNota, leerNota, guardarNota);
   }
 
   iniciar(): void {
@@ -83,6 +87,7 @@ export class ControladorVisor {
 
     this.lista.marcarSeleccionado(id);
     this.pintarDescripcion(patron);
+    void this.notas.mostrarModelo(id, patron.nombre);
     if (desplazar && window.matchMedia("(max-width: 760px)").matches) {
       this.lienzoEl.scrollIntoView({ behavior: "smooth", block: "start" });
     }
