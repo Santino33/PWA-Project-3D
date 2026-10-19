@@ -12,6 +12,8 @@
 import type { PatronArquitectura } from "../dominio/PatronArquitectura";
 import { ArbolCatalogo } from "../dominio/ArbolCatalogo";
 import { crearCatalogo } from "../datos/patrones";
+import { alternarFavorito, marcarModeloVisto, obtenerEstados, obtenerFavoritos } from "../datos/estadoModelos";
+import type { EstadoModelo } from "../dominio/EstadoModelo";
 
 import { Escena3D } from "../vista/escena3d";
 import { ListaCatalogo } from "../vista/listaCatalogo";
@@ -26,15 +28,19 @@ export class ControladorVisor {
   private estadoEl: HTMLElement;
   private descripcionEl: HTMLElement;
   private seleccionActual = 0;
+  private vistosLocales = new Set<string>();
+  private favoritosLocales = new Set<string>();
+  private estadoCatalogoEl: HTMLElement;
 
-  constructor(listaEl: HTMLElement, lienzoEl: HTMLCanvasElement, descripcionEl: HTMLElement, estadoEl: HTMLElement) {
+  constructor(listaEl: HTMLElement, filtroEl: HTMLButtonElement, lienzoEl: HTMLCanvasElement, descripcionEl: HTMLElement, estadoEl: HTMLElement, estadoCatalogoEl: HTMLElement) {
     this.catalogo = crearCatalogo();
     this.lienzoEl = lienzoEl;
     this.estadoEl = estadoEl;
+    this.estadoCatalogoEl = estadoCatalogoEl;
     this.descripcionEl = descripcionEl;
 
     // La vista recibe una función que llamar; no sabe qué hay al otro lado.
-    this.lista = new ListaCatalogo(listaEl, (id) => this.seleccionar(id));
+    this.lista = new ListaCatalogo(listaEl, filtroEl, (id) => this.seleccionar(id), (id) => { void this.cambiarFavorito(id); });
   }
 
   iniciar(): void {
@@ -42,7 +48,8 @@ export class ControladorVisor {
     // del árbol binario, no un sort().
     const patrones = this.catalogo.enOrden();
 
-    this.lista.pintar(patrones.map(this.aItem));
+    this.lista.establecerItems(patrones.map(this.aItem));
+    void this.hidratarEstados();
     this.estado("Cargando visor 3D…");
     try {
       this.escena = new Escena3D(this.lienzoEl, (mensaje) => this.estado(mensaje));
@@ -52,7 +59,7 @@ export class ControladorVisor {
       this.estado("El visor 3D no está disponible en este dispositivo.", true);
     }
 
-    if (patrones.length > 0) this.seleccionar(patrones[0].id);
+    if (patrones.length > 0) this.seleccionar(patrones[0].id, false);
     else this.estado("No hay modelos disponibles.", true);
 
     // Comprobación rápida de que la inserción balanceada funcionó:
@@ -67,7 +74,7 @@ export class ControladorVisor {
     return { id: patron.id, nombre: patron.nombre, categoria: patron.categoria };
   }
 
-  private seleccionar(id: string): void {
+  private seleccionar(id: string, desplazar = true): void {
     const patron = this.catalogo.buscarPorId(id);
     if (patron === null) {
       this.estado("El modelo solicitado no existe.", true);
@@ -76,12 +83,19 @@ export class ControladorVisor {
 
     this.lista.marcarSeleccionado(id);
     this.pintarDescripcion(patron);
+    if (desplazar && window.matchMedia("(max-width: 760px)").matches) {
+      this.lienzoEl.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
     if (!this.escena) return;
 
     const seleccion = ++this.seleccionActual;
     this.estado(`Cargando ${patron.nombre}…`);
     try {
       this.escena.mostrar(construirPatron(patron.id));
+      this.vistosLocales.add(id);
+      void marcarModeloVisto(id).then((guardado) => {
+        this.lista.actualizarEstado(id, { ultimaVista: guardado.ultimaVista });
+      }).catch(() => this.avisoCatalogo("No se pudo guardar la última visualización."));
       requestAnimationFrame(() => {
         if (seleccion === this.seleccionActual && this.escena?.disponible) this.estado("");
       });
@@ -89,6 +103,40 @@ export class ControladorVisor {
       console.error(`No se pudo mostrar ${patron.id}`, error);
       this.estado(`No se pudo mostrar ${patron.nombre}. Prueba con otro modelo.`, true);
     }
+  }
+
+  private async hidratarEstados(): Promise<void> {
+    try {
+      const [estados, favoritos] = await Promise.all([obtenerEstados(), obtenerFavoritos()]);
+      const idsFavoritos = new Set(favoritos.map(({ modeloId }) => modeloId));
+      for (const item of estados) {
+        this.lista.actualizarEstado(item.modeloId, {
+          ...(!this.favoritosLocales.has(item.modeloId) ? { favorito: idsFavoritos.has(item.modeloId) } : {}),
+          ...(!this.vistosLocales.has(item.modeloId) ? { ultimaVista: item.ultimaVista } : {}),
+        });
+      }
+    } catch {
+      this.avisoCatalogo("No se pudo leer el estado guardado. Puedes seguir explorando los modelos.");
+    }
+  }
+
+  private async cambiarFavorito(id: string): Promise<void> {
+    this.favoritosLocales.add(id);
+    this.lista.marcarPendiente(id, true);
+    this.avisoCatalogo("Guardando favorito…");
+    try {
+      const estado: EstadoModelo = await alternarFavorito(id);
+      this.lista.actualizarEstado(id, { favorito: estado.favorito === 1 });
+      this.avisoCatalogo(estado.favorito ? "Guardado en favoritos." : "Eliminado de favoritos.");
+    } catch {
+      this.avisoCatalogo("No se pudo guardar el favorito. Vuelve a intentarlo.");
+    } finally {
+      this.lista.marcarPendiente(id, false);
+    }
+  }
+
+  private avisoCatalogo(mensaje: string): void {
+    this.estadoCatalogoEl.textContent = mensaje;
   }
 
   private estado(mensaje: string, error = false): void {

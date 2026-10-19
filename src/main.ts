@@ -17,11 +17,13 @@ function requerir<T extends Element>(selector: string): T {
 }
 
 const listaEl = requerir<HTMLElement>("#lista-catalogo");
+const filtroEl = requerir<HTMLButtonElement>("#filtro-favoritos");
 const lienzoEl = requerir<HTMLCanvasElement>("#lienzo-3d");
 const descripcionEl = requerir<HTMLElement>("#descripcion-patron");
 const estadoEl = requerir<HTMLElement>("#estado-visor");
+const estadoCatalogoEl = requerir<HTMLElement>("#estado-catalogo");
 
-const controlador = new ControladorVisor(listaEl, lienzoEl, descripcionEl, estadoEl);
+const controlador = new ControladorVisor(listaEl, filtroEl, lienzoEl, descripcionEl, estadoEl, estadoCatalogoEl);
 controlador.iniciar();
 
 // Sesión 28: con el Service Worker registrado, el manifest.json cumple el
