@@ -63,6 +63,12 @@ body {
   text-transform: uppercase;
 }
 
+.controles-pwa { margin-bottom: 1rem; color: var(--tenue); font-size: 0.78rem; }
+.controles-pwa p { line-height: 1.4; margin: 0.35rem 0; }
+.controles-pwa .sin-conexion { color: var(--ambar); }
+.controles-pwa button { border: 1px solid var(--cian); border-radius: 8px; background: #16354b; color: var(--texto); padding: 0.5rem 0.8rem; cursor: pointer; }
+.controles-pwa button[hidden] { display: none; }
+
 .lista-catalogo {
   display: grid;
   gap: 0.75rem;

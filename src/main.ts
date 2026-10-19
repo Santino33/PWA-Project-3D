@@ -6,6 +6,7 @@
 import "./estilos.css";
 import { ControladorVisor } from "./controlador/ControladorVisor";
 import { registrarServiceWorker } from "./pwa/registrarServiceWorker";
+import { iniciarEstadoPwa } from "./vista/estadoPwa";
 
 /** Busca un elemento obligatorio y falla con un mensaje claro si no está. */
 function requerir<T extends Element>(selector: string): T {
@@ -27,6 +28,6 @@ const notasEl = requerir<HTMLElement>("#panel-notas");
 const controlador = new ControladorVisor(listaEl, filtroEl, lienzoEl, descripcionEl, estadoEl, estadoCatalogoEl, notasEl);
 controlador.iniciar();
 
-// Sesión 28: con el Service Worker registrado, el manifest.json cumple el
-// último criterio de instalabilidad que quedaba pendiente.
-registrarServiceWorker();
+const estadoPwa = requerir<HTMLElement>("#estado-pwa");
+iniciarEstadoPwa(requerir<HTMLButtonElement>("#instalar-app"), requerir<HTMLElement>("#estado-conexion"), estadoPwa);
+registrarServiceWorker((mensaje) => { estadoPwa.textContent = mensaje; });
